@@ -261,4 +261,5 @@ def forcar_atualizacao():
 @app.get("/help", response_class=HTMLResponse, include_in_schema=False)
 def documentacao():
     with open("help.html", "r", encoding="utf-8") as f:
+
         return f.read()
