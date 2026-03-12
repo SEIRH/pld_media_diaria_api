@@ -1,1 +1,0 @@
-# pld_media_diaria_api
