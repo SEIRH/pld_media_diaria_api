@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>API PLD Média Diária — CCEE</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #222638;
+    --border: #2e3248;
+    --accent: #4f8ef7;
+    --accent2: #7c6af7;
+    --green: #3ecf8e;
+    --yellow: #f7c948;
+    --red: #f76f6f;
+    --text: #e2e8f0;
+    --muted: #8892a4;
+    --code-bg: #0d1117;
+    --radius: 10px;
+    --font: 'Segoe UI', system-ui, sans-serif;
+    --mono: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); line-height: 1.6; }
+
+  /* Layout */
+  .layout { display: flex; min-height: 100vh; }
+  nav {
+    width: 260px; min-width: 260px; background: var(--surface);
+    border-right: 1px solid var(--border); padding: 32px 0;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  }
+  main { flex: 1; padding: 48px 56px; max-width: 860px; }
+
+  /* Nav */
+  .nav-logo { padding: 0 24px 28px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+  .nav-logo h2 { font-size: 15px; font-weight: 700; color: var(--text); }
+  .nav-logo span { font-size: 12px; color: var(--muted); }
+  .nav-section { padding: 8px 24px 4px; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  nav a { display: block; padding: 7px 24px; font-size: 13.5px; color: var(--muted); text-decoration: none; border-left: 2px solid transparent; transition: all .15s; }
+  nav a:hover { color: var(--text); background: var(--surface2); }
+  nav a.active { color: var(--accent); border-left-color: var(--accent); background: rgba(79,142,247,.07); }
+
+  /* Badges */
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 700;
+    padding: 2px 8px; border-radius: 4px; font-family: var(--mono);
+    vertical-align: middle; margin-left: 6px;
+  }
+  .get  { background: rgba(62,207,142,.15); color: var(--green); }
+  .post { background: rgba(247,201,72,.15); color: var(--yellow); }
+
+  /* Headings */
+  h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+  h2 { font-size: 20px; font-weight: 700; margin: 48px 0 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 15px; font-weight: 700; margin: 28px 0 10px; color: var(--text); }
+  p  { color: #b0bac9; margin-bottom: 12px; font-size: 14.5px; }
+
+  /* Hero */
+  .hero { margin-bottom: 40px; }
+  .hero p { font-size: 15px; color: var(--muted); max-width: 600px; }
+  .base-url {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 10px 16px; margin: 16px 0;
+  }
+  .base-url span { font-family: var(--mono); font-size: 13px; color: var(--accent); }
+  .copy-btn {
+    background: none; border: 1px solid var(--border); color: var(--muted);
+    border-radius: 6px; padding: 3px 10px; font-size: 11px; cursor: pointer;
+    transition: all .15s;
+  }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Endpoint cards */
+  .endpoint {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); margin-bottom: 20px; overflow: hidden;
+  }
+  .endpoint-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 20px; cursor: pointer; user-select: none;
+    border-bottom: 1px solid transparent; transition: background .15s;
+  }
+  .endpoint-header:hover { background: var(--surface2); }
+  .endpoint-header.open { border-bottom-color: var(--border); }
+  .ep-path { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--text); }
+  .ep-desc { font-size: 13px; color: var(--muted); margin-left: auto; }
+  .chevron { color: var(--muted); font-size: 12px; transition: transform .2s; }
+  .chevron.open { transform: rotate(90deg); }
+  .endpoint-body { padding: 20px; display: none; }
+  .endpoint-body.open { display: block; }
+
+  /* Params table */
+  .param-table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 12px 0; }
+  .param-table th { text-align: left; padding: 8px 12px; color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; border-bottom: 1px solid var(--border); }
+  .param-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .param-table tr:last-child td { border-bottom: none; }
+  .param-name { font-family: var(--mono); color: var(--accent2); font-size: 13px; }
+  .param-type { font-family: var(--mono); color: var(--muted); font-size: 12px; }
+  .required { color: var(--red); font-size: 11px; font-weight: 700; }
+  .optional { color: var(--muted); font-size: 11px; }
+
+  /* Code blocks */
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px 20px; overflow-x: auto;
+    font-family: var(--mono); font-size: 13px; line-height: 1.7;
+    margin: 12px 0; position: relative;
+  }
+  code { font-family: var(--mono); font-size: 13px; }
+  .inline-code {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 6px; font-family: var(--mono);
+    font-size: 12.5px; color: var(--accent2);
+  }
+  .c-green  { color: var(--green); }
+  .c-yellow { color: var(--yellow); }
+  .c-blue   { color: var(--accent); }
+  .c-muted  { color: var(--muted); }
+  .c-red    { color: var(--red); }
+
+  /* Response blocks */
+  .res-block { margin: 12px 0; }
+  .res-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+
+  /* Info box */
+  .info-box {
+    border-left: 3px solid var(--accent); background: rgba(79,142,247,.07);
+    border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 16px 0; font-size: 13.5px; color: #a8bdd8;
+  }
+  .warn-box {
+    border-left: 3px solid var(--yellow); background: rgba(247,201,72,.07);
+    border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 16px 0; font-size: 13.5px; color: #c9b87a;
+  }
+
+  /* Power Query section */
+  .pq-step { display: flex; gap: 14px; margin-bottom: 18px; align-items: flex-start; }
+  .pq-num {
+    min-width: 28px; height: 28px; border-radius: 50%;
+    background: var(--accent); color: #fff; font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pq-step p { margin: 0; color: var(--muted); font-size: 14px; }
+  .pq-step strong { color: var(--text); }
+
+  /* Scroll behavior */
+  html { scroll-behavior: smooth; }
+  section { scroll-margin-top: 24px; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    nav { display: none; }
+    main { padding: 28px 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- Sidebar -->
+<nav>
+  <div class="nav-logo">
+    <h2>PLD Média Diária</h2>
+    <span>API CCEE · v1.0.0</span>
+  </div>
+  <div class="nav-section">Introdução</div>
+  <a href="#visao-geral" class="active">Visão Geral</a>
+  <a href="#base-url">Base URL</a>
+  <a href="#formato-resposta">Formato de Resposta</a>
+  <div class="nav-section">Endpoints</div>
+  <a href="#ep-pld"><span class="badge get">GET</span> /pld</a>
+  <a href="#ep-filtrar"><span class="badge get">GET</span> /filtrar</a>
+  <a href="#ep-colunas"><span class="badge get">GET</span> /colunas</a>
+  <a href="#ep-status"><span class="badge get">GET</span> /status</a>
+  <a href="#ep-atualizar"><span class="badge get">GET</span> /atualizar</a>
+  <div class="nav-section">Guias</div>
+  <a href="#powerbi">Integração Power BI</a>
+  <a href="#manutencao">Manutenção Anual</a>
+  <a href="#erros">Códigos de Erro</a>
+</nav>
+
+<!-- Main content -->
+<main>
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>API PLD Média Diária</h1>
+    <p>API intermediária que consolida os dados de PLD médio diário da CCEE (Câmara de Comercialização de Energia Elétrica) de múltiplos anos em um único endpoint, com cache automático de 24 horas.</p>
+    <div class="base-url">
+      <span id="baseUrlText">https://pld-media-diaria-api.onrender.com</span>
+      <button class="copy-btn" onclick="copyBase()">Copiar</button>
+    </div>
+  </div>
+
+  <!-- Visão Geral -->
+  <section id="visao-geral">
+    <h2>Visão Geral</h2>
+    <p>A CCEE disponibiliza os dados de PLD segmentados por ano, cada um com um <code class="inline-code">resource_id</code> diferente. Esta API unifica todos os anos disponíveis em um único endpoint, tornando o consumo direto pelo Power BI simples e sem necessidade de transformações manuais.</p>
+    <div class="info-box">
+      <strong>Cache automático:</strong> os dados são coletados da CCEE uma vez por dia. O primeiro acesso após a expiração do cache pode levar entre 30–60 segundos. Todos os acessos seguintes são instantâneos.
+    </div>
+  </section>
+
+  <!-- Base URL -->
+  <section id="base-url">
+    <h2>Base URL</h2>
+    <pre><span class="c-green">https://pld-media-diaria-api.onrender.com</span></pre>
+    <p>Todos os endpoints são relativos a esta URL base. A API não requer autenticação.</p>
+  </section>
+
+  <!-- Formato -->
+  <section id="formato-resposta">
+    <h2>Formato de Resposta</h2>
+    <p>Os endpoints retornam <strong>CSV</strong> (padrão, separador <code class="inline-code">;</code>, encoding <code class="inline-code">UTF-8</code>) ou <strong>JSON</strong>, conforme indicado em cada endpoint. O encoding UTF-8 com BOM (<code class="inline-code">utf-8-sig</code>) é usado nos downloads para compatibilidade com Excel e Power BI.</p>
+  </section>
+
+  <!-- Endpoints -->
+  <section id="endpoints">
+    <h2>Endpoints</h2>
+
+    <!-- /pld -->
+    <div class="endpoint" id="ep-pld">
+      <div class="endpoint-header open" onclick="toggle(this)">
+        <span class="badge get">GET</span>
+        <span class="ep-path">/pld</span>
+        <span class="ep-desc">Retorna todo o dataset consolidado</span>
+        <span class="chevron open">▶</span>
+      </div>
+      <div class="endpoint-body open">
+        <p>Retorna o CSV completo com todos os anos disponíveis concatenados. Este é o endpoint principal para uso no Power BI.</p>
+        <h3>Exemplo de requisição</h3>
+        <pre><span class="c-blue">GET</span> https://pld-media-diaria-api.onrender.com<span class="c-green">/pld</span></pre>
+        <h3>Resposta</h3>
+        <div class="res-block">
+          <div class="res-label">200 OK — text/plain; charset=utf-8</div>
+          <pre><span class="c-muted">MES_REFERENCIA;SUBMERCADO;DIA;PLD_MEDIA_DIA;ano_referencia_api</span>
+<span class="c-green">202101;NORDESTE;08/01/2021;312.49;2021</span>
+<span class="c-green">202101;SUDESTE;08/01/2021;192.35;2021</span>
+<span class="c-green">...</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- /filtrar -->
+    <div class="endpoint" id="ep-filtrar">
+      <div class="endpoint-header open" onclick="toggle(this)">
+        <span class="badge get">GET</span>
+        <span class="ep-path">/filtrar</span>
+        <span class="ep-desc">Filtra por coluna e valor</span>
+        <span class="chevron open">▶</span>
+      </div>
+      <div class="endpoint-body open">
+        <p>Permite filtrar os dados por qualquer coluna e valor, selecionar apenas colunas específicas e escolher entre CSV (com download) ou JSON.</p>
+        <h3>Parâmetros</h3>
+        <table class="param-table">
+          <thead><tr><th>Parâmetro</th><th>Tipo</th><th>Obrig.</th><th>Descrição</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="param-name">coluna</span></td>
+              <td><span class="param-type">string</span></td>
+              <td><span class="required">Sim</span></td>
+              <td>Nome da coluna a filtrar. Use <code class="inline-code">/colunas</code> para ver os nomes disponíveis.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">valor</span></td>
+              <td><span class="param-type">string</span></td>
+              <td><span class="required">Sim</span></td>
+              <td>Valor a buscar na coluna. A comparação é feita como string, sem distinção de espaços nas bordas.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">colunas</span></td>
+              <td><span class="param-type">string</span></td>
+              <td><span class="optional">Não</span></td>
+              <td>Colunas a retornar, separadas por vírgula. Omita para retornar todas.</td>
+            </tr>
+            <tr>
+              <td><span class="param-name">formato</span></td>
+              <td><span class="param-type">string</span></td>
+              <td><span class="optional">Não</span></td>
+              <td>Formato de retorno: <code class="inline-code">csv</code> (padrão, faz download) ou <code class="inline-code">json</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Exemplos</h3>
+        <p>Filtrar todos os registros do submercado NORDESTE, retornando apenas dia e PLD:</p>
+        <pre><span class="c-blue">GET</span> /filtrar?<span class="c-yellow">coluna</span>=SUBMERCADO&<span class="c-yellow">valor</span>=NORDESTE&<span class="c-yellow">colunas</span>=DIA,PLD_MEDIA_DIA&<span class="c-yellow">formato</span>=csv</pre>
+
+        <p>Filtrar por submercado e retornar como JSON (útil para testes no browser):</p>
+        <pre><span class="c-blue">GET</span> /filtrar?<span class="c-yellow">coluna</span>=SUBMERCADO&<span class="c-yellow">valor</span>=SUDESTE&<span class="c-yellow">formato</span>=json</pre>
+
+        <p>Filtrar um ano específico:</p>
+        <pre><span class="c-blue">GET</span> /filtrar?<span class="c-yellow">coluna</span>=ano_referencia_api&<span class="c-yellow">valor</span>=2024</pre>
+
+        <p>Filtrar por mês de referência:</p>
+        <pre><span class="c-blue">GET</span> /filtrar?<span class="c-yellow">coluna</span>=MES_REFERENCIA&<span class="c-yellow">valor</span>=202401</pre>
+
+        <h3>Resposta CSV</h3>
+        <div class="res-block">
+          <div class="res-label">200 OK — text/csv · arquivo: ccee_SUBMERCADO_NORDESTE.csv</div>
+          <pre><span class="c-muted">DIA;PLD_MEDIA_DIA</span>
+<span class="c-green">08/01/2021;312.49
+09/01/2021;312.49
+...</span></pre>
+        </div>
+
+        <h3>Resposta JSON</h3>
+        <div class="res-block">
+          <div class="res-label">200 OK — application/json</div>
+          <pre><span class="c-green">[
+  { <span class="c-yellow">"MES_REFERENCIA"</span>: <span class="c-green">"202101"</span>, <span class="c-yellow">"SUBMERCADO"</span>: <span class="c-green">"NORDESTE"</span>, <span class="c-yellow">"DIA"</span>: <span class="c-green">"08/01/2021"</span>, <span class="c-yellow">"PLD_MEDIA_DIA"</span>: <span class="c-green">"312.49"</span> },
+  { <span class="c-yellow">"MES_REFERENCIA"</span>: <span class="c-green">"202101"</span>, <span class="c-yellow">"SUBMERCADO"</span>: <span class="c-green">"NORDESTE"</span>, <span class="c-yellow">"DIA"</span>: <span class="c-green">"09/01/2021"</span>, <span class="c-yellow">"PLD_MEDIA_DIA"</span>: <span class="c-green">"312.49"</span> },
+  ...
+]</span></pre>
+        </div>
+
+        <h3>Erros possíveis</h3>
+        <pre><span class="c-red">400 Bad Request</span> → Coluna 'xyz' não encontrada. Disponíveis: MES_REFERENCIA, SUBMERCADO, ...
+<span class="c-red">400 Bad Request</span> → Colunas inválidas: xyz. Disponíveis: MES_REFERENCIA, SUBMERCADO, ...</pre>
+      </div>
+    </div>
+
+    <!-- /colunas -->
+    <div class="endpoint" id="ep-colunas">
+      <div class="endpoint-header" onclick="toggle(this)">
+        <span class="badge get">GET</span>
+        <span class="ep-path">/colunas</span>
+        <span class="ep-desc">Lista as colunas disponíveis</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="endpoint-body">
+        <p>Retorna a lista de todas as colunas presentes no dataset consolidado. Útil para consultar os nomes exatos antes de usar o <code class="inline-code">/filtrar</code>.</p>
+        <h3>Exemplo de requisição</h3>
+        <pre><span class="c-blue">GET</span> https://pld-media-diaria-api.onrender.com<span class="c-green">/colunas</span></pre>
+        <h3>Resposta</h3>
+        <div class="res-block">
+          <div class="res-label">200 OK — application/json</div>
+          <pre><span class="c-green">{
+  <span class="c-yellow">"colunas"</span>: [
+    <span class="c-green">"MES_REFERENCIA"</span>,
+    <span class="c-green">"SUBMERCADO"</span>,
+    <span class="c-green">"DIA"</span>,
+    <span class="c-green">"PLD_MEDIA_DIA"</span>,
+    <span class="c-green">"ano_referencia_api"</span>
+  ]
+}</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- /status -->
+    <div class="endpoint" id="ep-status">
+      <div class="endpoint-header" onclick="toggle(this)">
+        <span class="badge get">GET</span>
+        <span class="ep-path">/status</span>
+        <span class="ep-desc">Verifica o estado do cache</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="endpoint-body">
+        <p>Retorna informações sobre o cache atual: se está válido, quando foi atualizado, quantos registros há e se ocorreram erros na última coleta.</p>
+        <h3>Exemplo de requisição</h3>
+        <pre><span class="c-blue">GET</span> https://pld-media-diaria-api.onrender.com<span class="c-green">/status</span></pre>
+        <h3>Resposta</h3>
+        <div class="res-block">
+          <div class="res-label">200 OK — application/json</div>
+          <pre><span class="c-green">{
+  <span class="c-yellow">"cache_valido"</span>: <span class="c-blue">true</span>,
+  <span class="c-yellow">"ultima_atualizacao"</span>: <span class="c-green">"2026-03-04T08:32:11.443210"</span>,
+  <span class="c-yellow">"expira_em"</span>: <span class="c-green">"2026-03-05T08:32:11.443210"</span>,
+  <span class="c-yellow">"total_registros"</span>: <span class="c-blue">14832</span>,
+  <span class="c-yellow">"anos_coletados"</span>: [<span class="c-blue">2021, 2022, 2023, 2024, 2025, 2026</span>],
+  <span class="c-yellow">"erros_na_ultima_coleta"</span>: []
+}</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- /atualizar -->
+    <div class="endpoint" id="ep-atualizar">
+      <div class="endpoint-header" onclick="toggle(this)">
+        <span class="badge get">GET</span>
+        <span class="ep-path">/atualizar</span>
+        <span class="ep-desc">Força recoleta imediata</span>
+        <span class="chevron">▶</span>
+      </div>
+      <div class="endpoint-body">
+        <p>Ignora o cache atual e dispara uma nova coleta completa dos dados da CCEE. Use quando a CCEE publicar dados novos e você não quiser aguardar as 24h do cache.</p>
+        <div class="warn-box">⚠️ Este endpoint pode levar <strong>30–60 segundos</strong> para responder, pois realiza o scraping completo com pausas para evitar bloqueio.</div>
+        <h3>Exemplo de requisição</h3>
+        <pre><span class="c-blue">GET</span> https://pld-media-diaria-api.onrender.com<span class="c-green">/atualizar</span></pre>
+        <h3>Resposta</h3>
+        <div class="res-block">
+          <div class="res-label">200 OK — application/json</div>
+          <pre><span class="c-green">{
+  <span class="c-yellow">"mensagem"</span>: <span class="c-green">"Dados recoletados com sucesso."</span>,
+  <span class="c-yellow">"total_registros"</span>: <span class="c-blue">14832</span>,
+  <span class="c-yellow">"anos_coletados"</span>: [<span class="c-blue">2021, 2022, 2023, 2024, 2025, 2026</span>],
+  <span class="c-yellow">"erros"</span>: []
+}</span></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Power BI -->
+  <section id="powerbi">
+    <h2>Integração Power BI</h2>
+    <p>O Power BI consome a API via <strong>Web.Contents</strong> no Power Query (Editor M). Siga os passos abaixo:</p>
+
+    <div class="pq-step">
+      <div class="pq-num">1</div>
+      <p>No Power BI Desktop, clique em <strong>Obter Dados → Consulta em Branco</strong>.</p>
+    </div>
+    <div class="pq-step">
+      <div class="pq-num">2</div>
+      <p>Clique em <strong>Editor Avançado</strong> e cole o código abaixo.</p>
+    </div>
+    <div class="pq-step">
+      <div class="pq-num">3</div>
+      <p>Clique em <strong>Concluído</strong>. O Power BI carregará e tipará os dados automaticamente.</p>
+    </div>
+
+    <h3>Código Power Query — dataset completo (/pld)</h3>
+    <pre><span class="c-blue">let</span>
+    Fonte       = Web.Contents(<span class="c-green">"https://pld-media-diaria-api.onrender.com/pld"</span>),
+    ConteudoCSV = Text.FromBinary(Fonte),
+    CSV = Csv.Document(
+        Text.ToBinary(ConteudoCSV, TextEncoding.Utf8),
+        [
+            Delimiter  = <span class="c-green">";"</span>,
+            Encoding   = TextEncoding.Utf8,
+            QuoteStyle = QuoteStyle.None,
+            Columns    = <span class="c-blue">null</span>
+        ]
+    ),
+    ComCabecalho = Table.PromoteHeaders(CSV, [PromoteAllScalars = <span class="c-blue">true</span>])
+<span class="c-blue">in</span>
+    ComCabecalho</pre>
+
+    <h3>Código Power Query — com filtro (/filtrar)</h3>
+    <p>Exemplo: buscar apenas o submercado NORDESTE com dia e PLD.</p>
+    <pre><span class="c-blue">let</span>
+    Url = <span class="c-green">"https://pld-media-diaria-api.onrender.com/filtrar"</span>
+        & <span class="c-green">"?coluna=SUBMERCADO&valor=NORDESTE"</span>
+        & <span class="c-green">"&colunas=DIA,PLD_MEDIA_DIA"</span>,
+    Fonte       = Web.Contents(Url),
+    ConteudoCSV = Text.FromBinary(Fonte),
+    CSV = Csv.Document(
+        Text.ToBinary(ConteudoCSV, TextEncoding.Utf8),
+        [Delimiter = <span class="c-green">";"</span>, Encoding = TextEncoding.Utf8]
+    ),
+    ComCabecalho = Table.PromoteHeaders(CSV, [PromoteAllScalars = <span class="c-blue">true</span>])
+<span class="c-blue">in</span>
+    ComCabecalho</pre>
+
+    <div class="info-box">
+      <strong>Dica:</strong> após carregar, use <strong>Transformar → Detectar Tipo de Dados</strong> para o Power BI tipar automaticamente datas e números.
+    </div>
+  </section>
+
+  <!-- Manutenção -->
+  <section id="manutencao">
+    <h2>Manutenção Anual</h2>
+    <p>Como a CCEE separa os dados por ano e usa IDs únicos por dataset, é necessário adicionar o novo <code class="inline-code">resource_id</code> no início de cada ano.</p>
+    <h3>Como encontrar o novo ID</h3>
+    <div class="pq-step">
+      <div class="pq-num">1</div>
+      <p>Acesse <strong>dadosabertos.ccee.org.br</strong> e localize o dataset do novo ano.</p>
+    </div>
+    <div class="pq-step">
+      <div class="pq-num">2</div>
+      <p>Clique em <strong>Explorar</strong> no dataset. O <code class="inline-code">resource_id</code> aparece na URL ou na chamada de API da página.</p>
+    </div>
+    <div class="pq-step">
+      <div class="pq-num">3</div>
+      <p>Edite o dicionário <code class="inline-code">RESOURCE_IDS_POR_ANO</code> no <code class="inline-code">main.py</code> e faça o redeploy.</p>
+    </div>
+    <pre><span class="c-muted"># main.py</span>
+RESOURCE_IDS_POR_ANO: dict[int, str] = {
+    <span class="c-muted">...</span>
+    <span class="c-blue">2026</span>: <span class="c-green">"3ca83769-de89-4dc5-84a7-0128167b594d"</span>,
+    <span class="c-blue">2027</span>: <span class="c-green">"cole-aqui-o-novo-resource-id"</span>,  <span class="c-muted"># ← adicionar</span>
+}</pre>
+  </section>
+
+  <!-- Erros -->
+  <section id="erros">
+    <h2>Códigos de Erro</h2>
+    <table class="param-table">
+      <thead><tr><th>Código</th><th>Situação</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="param-name c-green">200</span></td>
+          <td>Sucesso.</td>
+        </tr>
+        <tr>
+          <td><span class="param-name c-red">400</span></td>
+          <td>Parâmetro inválido no <code class="inline-code">/filtrar</code> — coluna inexistente ou nome de coluna errado. A resposta inclui a lista de colunas válidas.</td>
+        </tr>
+        <tr>
+          <td><span class="param-name c-red">503</span></td>
+          <td>Nenhum dado disponível no cache — a coleta da CCEE falhou para todos os anos. Verifique o endpoint <code class="inline-code">/status</code> para detalhes dos erros.</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="warn-box">
+      Se o <code class="inline-code">/status</code> retornar erros para alguns anos mas não todos, a API ainda funcionará com os anos que foram coletados com sucesso.
+    </div>
+  </section>
+
+</main>
+</div>
+
+<script>
+  function toggle(header) {
+    const body = header.nextElementSibling;
+    const chevron = header.querySelector('.chevron');
+    const isOpen = body.classList.contains('open');
+    body.classList.toggle('open', !isOpen);
+    header.classList.toggle('open', !isOpen);
+    chevron.classList.toggle('open', !isOpen);
+  }
+
+  function copyBase() {
+    navigator.clipboard.writeText('https://pld-media-diaria-api.onrender.com');
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'Copiado!';
+    setTimeout(() => btn.textContent = 'Copiar', 2000);
+  }
+
+  // Highlight nav link on scroll
+  const sections = document.querySelectorAll('section[id], div[id]');
+  const navLinks = document.querySelectorAll('nav a');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => {
+      if (window.scrollY >= s.offsetTop - 80) current = s.id;
+    });
+    navLinks.forEach(a => {
+      a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+    });
+  });
+</script>
+</body>
+</html>
